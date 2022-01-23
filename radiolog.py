@@ -5,7 +5,6 @@ import re
 import datetime
 import copy
 import xml.etree.ElementTree as ET
-from lxml import etree
 from xml.dom import minidom
 
 
