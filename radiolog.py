@@ -18,7 +18,7 @@ bandList = ('160m','80m','75m','40m','30m','20m','17m','15m','12m','10m','6m','2
 modeList = ('CW','SSB','AM','FM','FT8','C4FM','RTTY','SSTV')
 
 # QSOデータ入力項目リスト
-inputList = ('CALL','QSO_DATE','TIME_ON','TIME_OFF','RST_RCVD','RST_SENT','BAND','FREQ','MODE','COMMENT','NAME','JCC','GL','QTH','RIG','RX_PWR','ANTENNA','QSL_VIA','QSL_SENT','QSL_RCVD','MY_QTH','MY_RIG','TX_PWR','MY_ANTENNA','CONTEST_ID')
+inputList = ('CALL','QSO_DATE','TIME_ON','TIME_OFF','RST_RCVD','RST_SENT','BAND','FREQ','MODE','COMMENT','NAME','JCC','GL','QTH','RIG','RX_PWR','ANTENNA','QSL_VIA','QSL_SENT','QSL_RCVD','MY_QTH','MY_RIG','TX_PWR','MY_ANTENNA','CONTEST_ID','SRX','STX')
 # GUIレイアウト
 layout = [
     [SG.Text('', key='tex_top',font=(fontstyle,fontsize))],
@@ -57,6 +57,8 @@ layout = [
     [SG.Text('Ant',size=(4,1),font=(fontstyle,fontsize)),SG.Input(key='MY_ANTENNA',size=(40,1),font=(fontstyle,fontsize))],
     [SG.Text('Contest Information',font=(fontstyle,fontsize))],
     [SG.Text('Contest',size=(7,1),font=(fontstyle,fontsize)),SG.Input(key='CONTEST_ID',size=(37,1),font=(fontstyle,fontsize))],
+    [SG.Text('Num RX',size=(6,1),font=(fontstyle,fontsize)),SG.Input(key='SRX',size=(10,1),font=(fontstyle,fontsize)),
+     SG.Text('Num TX',size=(6,1),font=(fontstyle,fontsize)),SG.Input(key='STX',size=(10,1),font=(fontstyle,fontsize))],
     [SG.Button('Add',font=(fontstyle,fontsize)),
      SG.Button('Update',font=(fontstyle,fontsize)),
      SG.Button('Export',font=(fontstyle,fontsize)),
@@ -106,30 +108,20 @@ def main():
                     input_form(xmldata.findall('./RECORDS/RECORD')[show_number - 1], window)
         # Prevボタン押下
         elif event == 'Prev':
-            if show_number > 1:
-                show_number = show_number - 1
-                window.find_element('Number').update(show_number)
-                input_form(xmldata.findall('./RECORDS/RECORD')[show_number - 1], window)
+            updateview(window, show_number - 1)
         # Nextボタン押下
         elif event == 'Next':
-            if show_number < len(xmldata.findall('./RECORDS/RECORD')) :
-                show_number = show_number + 1
-                window.find_element('Number').update(show_number)
-                input_form(xmldata.findall('./RECORDS/RECORD')[show_number - 1], window)
+            updateview(window, show_number + 1)
         # Number上でEnterを押下
         elif code == 13 and cur_focus == 'Number':
             try:
-                num = int(values['Number'])
-                if show_number != num:
-                    if num >= 1 and num <= len(xmldata.findall('./RECORDS/RECORD')):
-                        show_number = num
-                        window.find_element('Number').update(show_number)
-                        input_form(xmldata.findall('./RECORDS/RECORD')[show_number - 1], window)
+                updateview(window, int(values['Number']))
             except ValueError:
                 pass    
         # Addボタン押下
         elif event == 'Add':
             data_add(window)
+            updateview(window, len(xmldata.findall('./RECORDS/RECORD')))
         # Updateボタン押下
         elif event == 'Update':
             data_update(window)
@@ -163,6 +155,14 @@ def init_xml():
     programversion = ET.SubElement(header, 'PROGRAMVERSION')
     programversion.text = version
     records = ET.SubElement(xmldata, 'RECORDS')
+
+# Prevボタン押下処理
+def updateview(window, num):
+    global xmldata, show_number
+    if num >= 1 and num <= len(xmldata.findall('./RECORDS/RECORD')):
+        show_number = num
+        window.find_element('Number').update(num)
+        input_form(xmldata.findall('./RECORDS/RECORD')[num - 1], window)
 
 # フォーム値代入
 def input_form(record, window):
@@ -254,15 +254,11 @@ def data_update(window):
 
     records = xmldata.findall('./RECORDS/RECORD')
     record = records[show_number - 1]
+    for e in [c for c in record]:
+        record.remove(e)
     for k,v in d.items():
-        if not v:
-            e = record.find('./' + k)
-            if e is not None :
-                record.remove(e)
-        else:
-            elem = record.find('./' + k)
-            if not elem:
-                elem = ET.SubElement(record, k)
+        if v:
+            elem = ET.SubElement(record, k)
             elem.text = v
 
 # データ追加、更新時のチェック、時刻修正
